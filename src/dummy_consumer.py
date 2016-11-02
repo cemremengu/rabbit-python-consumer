@@ -11,9 +11,15 @@ class DummyConsumer(Consumer):
     """
     def __init__(self, host, queue):
         super().__init__(host, queue)
-    def execute(self, data):
-        time.sleep(3)
 
+    def extract(self, byte_data):
+        return byte_data
+
+    def adapt(self, batch):
+        return batch
+
+    def execute(self, batch):
+        time.sleep(3)
 
 def main(opts):
     """Bootstrap and run the consumer"""

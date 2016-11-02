@@ -25,7 +25,8 @@ class Consumer(metaclass=abc.ABCMeta):
         self._channel.basic_consume(self.on_message, queue=self._queue)
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
-        """Invoked by pika when a message is delivered from RabbitMQ. The
+        """
+        Invoked by pika when a message is delivered from RabbitMQ. The
         channel is passed for your convenience. The basic_deliver object that
         is passed in carries the exchange, routing key, delivery tag and
         a redelivered flag for the message. The properties passed in is an
@@ -37,12 +38,13 @@ class Consumer(metaclass=abc.ABCMeta):
         :param str|unicode body: The message body
         """
         LOGGER.info(' [*] Working...')
-        self.execute(body)
+        self.execute(self.adapt(self.extract(body)))
         LOGGER.info(' [*] Done...')
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):
-        """Acknowledge the message delivery from RabbitMQ by sending a
+        """
+        Acknowledge the message delivery from RabbitMQ by sending a
         Basic.Ack RPC method for the delivery tag.
         :param int delivery_tag: The delivery tag from the Basic.Deliver frame
         """
@@ -50,10 +52,23 @@ class Consumer(metaclass=abc.ABCMeta):
         self._channel.basic_ack(delivery_tag)
 
     @abc.abstractmethod
-    def execute(self, data):
+    def execute(self, batch):
         """
-        Concrete consumers implement this method for custom
-        behaviour
+        Concrete consumers implement this method for custom behaviour
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def adapt(self, batch):
+        """
+        Convert incoming data to a usable custom format
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def extract(self, byte_data):
+        """
+        Extract the incoming byte data
         """
         raise NotImplementedError
 
@@ -63,3 +78,11 @@ class Consumer(metaclass=abc.ABCMeta):
         """
         LOGGER.info(' [*] Waiting for logs. To exit press CTRL+C')
         self._channel.start_consuming()
+
+
+    def stop(self):
+        """
+        Stop consuming
+        """
+        LOGGER.info(' [*] Stopping')
+        self._channel.stop_consuming()
