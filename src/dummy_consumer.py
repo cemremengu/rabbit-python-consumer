@@ -19,6 +19,7 @@ class DummyConsumer(Consumer):
         return batch
 
     def execute(self, batch):
+		print(batch)
         time.sleep(3)
 
 def main(opts):
