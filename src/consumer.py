@@ -1,15 +1,18 @@
-import logging
-import pika
 import abc
+import logging
+
+import pika
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 class Consumer(metaclass=abc.ABCMeta):
-
+    """
+    An abstract consumer class that provides a hook method
+    for custom consumer behaviour
+    """
     def __init__(self, host, queue):
-        
         logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
         self._host = host
@@ -17,11 +20,9 @@ class Consumer(metaclass=abc.ABCMeta):
 
         self._connection = pika.BlockingConnection(pika.ConnectionParameters(
             host=self._host))
-            
         self._channel = self._connection.channel()
 
-        self._channel.basic_consume(self.on_message,
-                    queue=self._queue)
+        self._channel.basic_consume(self.on_message, queue=self._queue)
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
         """Invoked by pika when a message is delivered from RabbitMQ. The
@@ -39,7 +40,7 @@ class Consumer(metaclass=abc.ABCMeta):
         self.execute(body)
         LOGGER.info(' [*] Done...')
         self.acknowledge_message(basic_deliver.delivery_tag)
-        
+
     def acknowledge_message(self, delivery_tag):
         """Acknowledge the message delivery from RabbitMQ by sending a
         Basic.Ack RPC method for the delivery tag.
@@ -49,8 +50,16 @@ class Consumer(metaclass=abc.ABCMeta):
         self._channel.basic_ack(delivery_tag)
 
     @abc.abstractmethod
-    def execute(self, data): raise NotImplementedError
+    def execute(self, data):
+        """
+        Concrete consumers implement this method for custom
+        behaviour
+        """
+        raise NotImplementedError
 
     def start(self):
+        """
+        Begin consuming
+        """
         LOGGER.info(' [*] Waiting for logs. To exit press CTRL+C')
         self._channel.start_consuming()
